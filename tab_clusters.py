@@ -1,7 +1,8 @@
 from os.path import basename
 from sys import argv
+from os import walk
+from pathlib import Path
 
-from fathom_web.utils import samples_from_dir
 from pprint import pprint
 from pyquery import PyQuery as pq
 from sklearn.cluster import AgglomerativeClustering
@@ -10,6 +11,19 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 # cluster tabs things by cos distance of
 # innertext >| term vectors >| tfidf
+
+def samples_from_dir(in_dir):
+    """Return an iterable of Paths to samples found in ``in_dir``,
+    recursively."""
+    for dir_path, dirs, files in walk(in_dir):
+        try:
+            # Skip resources/ folders. Sometimes they contain .html files, and
+            # those aren't samples.
+            dirs.remove('resources')
+        except ValueError:
+            pass
+        yield from (Path(dir_path) / file for file in files
+                    if file.endswith('.html'))
 
 def tab_clusters(folder):
     paths_and_docs = [(basename(path), text_from_sample(path)) for path in samples_from_dir(folder)]
