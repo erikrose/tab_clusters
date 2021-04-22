@@ -5,6 +5,7 @@ PERIOD="-1 months"
 
 if [ -z "$1" -o -z "$2" ]; then
   echo "Usage: sample.sh <places.sqlite> <directory>"
+  exit 1
 fi
 
 mkdir -p "$2"
