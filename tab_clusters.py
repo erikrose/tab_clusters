@@ -9,9 +9,6 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-# cluster tabs things by cos distance of
-# innertext >| term vectors >| tfidf
-
 def samples_from_dir(in_dir):
     """Return an iterable of Paths to samples found in ``in_dir``,
     recursively."""
@@ -24,6 +21,7 @@ def samples_from_dir(in_dir):
             pass
         yield from (Path(dir_path) / file for file in files
                     if file.endswith('.html'))
+
 
 def tab_clusters(folder):
     paths_and_docs = [(basename(path), text_from_sample(path)) for path in samples_from_dir(folder)]
@@ -50,4 +48,6 @@ if __name__ == '__main__':
     tab_clusters(argv[1])
 
 
-# NEXT: HTML signal, throw the URL or domain in as signal. Measure that first cluster, which seems to be pretty misc, so wee if it has high spread/variance or something that I can ignore it based on.
+# NEXT: HTML signal, throw the URL or domain in as signal. Measure that first cluster, which seems to be pretty misc, so see if it has high spread/variance or something that I can ignore it based on.
+# TODO: Try switching to cosine distance rather than Euclidean. That should keep documents from differing just by dint of being different lengths. Though does TFIDF inherently normalize the vectors itself? Yes. TfidfVectorizer normalizes in a way such that cosine similarity is dot product when using norm='l2', which is the default. So never mind; cosine similarity SHOULD not change things, if cos similarity is always the same as Euclidean on normalized vectors. It's proportional to (1 - cos sim).
+# TODO: Am I accidentally doing latent semantic analysis, or is that something I should consider separately? It's separate: it does some things I don't.
