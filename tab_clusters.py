@@ -24,7 +24,15 @@ def samples_from_dir(in_dir):
 
 
 def tab_clusters(folder):
-    paths_and_docs = [(basename(path), text_from_sample(path)) for path in samples_from_dir(folder)]
+    paths_and_docs = []
+    failures = 0
+    for path in samples_from_dir(folder):
+        try:
+            paths_and_docs.append((basename(path), text_from_sample(path)))
+        except (UnicodeDecodeError, ValueError):  # lxml throws ValueErrors when it has internal unicode trouble.
+            failures += 1
+            pass
+    print(f'{failures} had a unicode decode error.')
     paths, docs = zip(*paths_and_docs)
     vectorizer = TfidfVectorizer(max_df=.6)  # Decrease max_df to be more aggressive about declaring things stopwords.
     tfidfs = vectorizer.fit_transform(docs)
@@ -40,7 +48,7 @@ def tab_clusters(folder):
 
 def text_from_sample(filename):
     """Return the innerText (or thereabouts) from an HTML file."""
-    with open(filename, encoding='utf-8') as file:
+    with open(filename, encoding='utf-8', errors='ignore') as file:
         return pq(file.read()).remove('script').remove('style').text()
 
 
