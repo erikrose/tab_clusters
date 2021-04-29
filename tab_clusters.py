@@ -1,8 +1,9 @@
 from os.path import basename
-from sys import argv
 from os import walk
 from pathlib import Path
 
+import click
+from click import argument, command, option
 from pprint import pprint
 from pyquery import PyQuery as pq
 from sklearn.cluster import AgglomerativeClustering
@@ -26,7 +27,10 @@ def samples_from_dir(in_dir):
                     if file.endswith('.html'))
 
 
-def tab_clusters(folder):
+@command()
+@argument('folder', type=click.Path(exists=True, file_okay=False))
+@option('--lsa/--no-lsa', default=True)
+def tab_clusters(folder, lsa):
     # Read samples:
     paths_and_docs = []
     failures = 0
@@ -44,17 +48,22 @@ def tab_clusters(folder):
     tfidf_docs = vectorizer.fit_transform(docs)
     print(f'Stopwords: {vectorizer.stop_words_}')
 
-    # Do SVD to reduce matrix size and (tend to) merge synonyms and split
-    # polysemes:
-    decompose_and_normalize = make_pipeline(TruncatedSVD(100),
-                                            Normalizer(copy=False))
-    # McCormick normalizes the vectors after SVD, I guess so he can use cosine
-    # distance for classifying. Is there a point to our doing it?
-    lsa_docs = decompose_and_normalize.fit_transform(tfidf_docs)
+    if lsa:
+        # Do SVD to reduce matrix size and (tend to) merge synonyms and split
+        # polysemes:
+        decompose_and_normalize = make_pipeline(TruncatedSVD(300),
+                                                Normalizer(copy=False))
+        # McCormick normalizes the vectors after SVD, I guess so he can use
+        # cosine distance for classifying. Is there a point to our doing it?
+        lsa_docs = decompose_and_normalize.fit_transform(tfidf_docs)
+
+        vectors_to_cluster = lsa_docs
+    else:
+        vectors_to_cluster = tfidf_docs.toarray()
 
     # Cluster:
     clustering = AgglomerativeClustering(n_clusters=None, linkage='ward', compute_full_tree=True, distance_threshold=1.45)
-    clustering.fit(lsa_docs)
+    clustering.fit(vectors_to_cluster)
     print(f'Found {clustering.n_clusters_} clusters:')
     clusters = [[] for _ in range(clustering.n_clusters_)]
     for path_index, label in enumerate(clustering.labels_):
@@ -69,7 +78,7 @@ def text_from_sample(filename):
 
 
 if __name__ == '__main__':
-    tab_clusters(argv[1])
+    tab_clusters()
 
 
 # NEXT: HTML signal, throw the URL or domain in as signal. Measure that first cluster, which seems to be pretty misc, so see if it has high spread/variance or something that I can ignore it based on.
